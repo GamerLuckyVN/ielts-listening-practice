@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>IELTS Listening Practice</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #f8fafc, #e2e8f0);
+      padding: 40px;
+      text-align: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    input, button {
+      padding: 10px 16px;
+      font-size: 16px;
+      margin: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #1d4ed8;
+      color: white;
+      border: none;
+    }
+    .result { margin-top: 20px; font-size: 18px; }
+    .green { color: green; }
+    .red { color: red; }
+    .word-list { margin-top: 20px; text-align: left; max-height: 200px; overflow-y: auto; }
+    .word-item { display: flex; justify-content: space-between; align-items: center; }
+    .word-item span { flex: 1; }
+    .delete-btn { background: red; color: white; border: none; padding: 4px 8px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <h1>🎧 IELTS Listening Practice</h1>
+  <div class="card">
+    <div id="practice-area">
+      <button onclick="playWord()">🔊 Nghe</button>
+      <input type="text" id="userInput" placeholder="Nhập từ bạn nghe được" />
+      <button onclick="checkAnswer()">Kiểm tra</button>
+      <div class="result" id="result"></div>
+    </div>
+
+    <hr />
+
+    <h3>🛠️ Thêm từ muốn luyện</h3>
+    <input type="text" id="newWordInput" placeholder="Nhập từ mới và nhấn Thêm" />
+    <button onclick="addWord()">Thêm</button>
+
+    <div class="word-list" id="wordList"></div>
+  </div>
+
+  <script>
+    let wordList = JSON.parse(localStorage.getItem("ielts_words") || "[]");
+    let correctWords = JSON.parse(localStorage.getItem("ielts_correct") || "[]");
+    let incorrectWords = JSON.parse(localStorage.getItem("ielts_incorrect") || "[]");
+    let currentWord = "";
+
+    function saveToStorage() {
+      localStorage.setItem("ielts_words", JSON.stringify(wordList));
+      localStorage.setItem("ielts_correct", JSON.stringify(correctWords));
+      localStorage.setItem("ielts_incorrect", JSON.stringify(incorrectWords));
+    }
+
+    function playWord() {
+      const remaining = wordList.filter(w => !correctWords.includes(w));
+      if (remaining.length === 0) {
+        document.getElementById("result").innerHTML = "<span class='green'>🎉 Bạn đã luyện hết từ!</span>";
+        return;
+      }
+      currentWord = remaining[Math.floor(Math.random() * remaining.length)];
+      const utterance = new SpeechSynthesisUtterance(currentWord);
+      utterance.lang = "en-GB";
+      speechSynthesis.speak(utterance);
+    }
+
+    function checkAnswer() {
+      const input = document.getElementById("userInput").value.trim().toLowerCase();
+      if (!currentWord) return;
+      if (input === currentWord.toLowerCase()) {
+        document.getElementById("result").innerHTML = "<span class='green'>✅ Chính xác!</span>";
+        correctWords.push(currentWord);
+        wordList = wordList.filter(w => w !== currentWord); // xóa luôn nếu đúng
+      } else {
+        document.getElementById("result").innerHTML = `<span class='red'>❌ Sai! Đúng là: ${currentWord}</span>`;
+        if (!incorrectWords.includes(currentWord)) incorrectWords.push(currentWord);
+      }
+      document.getElementById("userInput").value = "";
+      saveToStorage();
+      renderWordList();
+      setTimeout(() => {
+        document.getElementById("result").innerHTML = "";
+        playWord();
+      }, 1000);
+    }
+
+    function addWord() {
+      const input = document.getElementById("newWordInput").value.trim().toLowerCase();
+      if (input && !wordList.includes(input)) {
+        wordList.push(input);
+        document.getElementById("newWordInput").value = "";
+        saveToStorage();
+        renderWordList();
+      }
+    }
+
+    function deleteWord(word) {
+      wordList = wordList.filter(w => w !== word);
+      correctWords = correctWords.filter(w => w !== word);
+      incorrectWords = incorrectWords.filter(w => w !== word);
+      saveToStorage();
+      renderWordList();
+    }
+
+    function renderWordList() {
+      const container = document.getElementById("wordList");
+      container.innerHTML = "";
+      wordList.forEach(word => {
+        const div = document.createElement("div");
+        div.className = "word-item";
+        div.innerHTML = `<span>${word}</span><button class="delete-btn" onclick="deleteWord('${word}')">X</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    renderWordList();
+    playWord(); // phát từ đầu khi vào trang
+  </script>
+</body>
+</html>
